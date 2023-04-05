@@ -1,0 +1,46 @@
+version: "3.6"
+services:
+
+  pb_stats_api:
+    image: ${REGISTRY_ADDRESS}/pb_stats_api/pb_stats_api:latest
+    environment:
+      - BACKEND_CORS_ORIGINS
+      - ENVIRONMENT
+      - POSTGRES_DB
+      - POSTGRES_PASSWORD
+      - POSTGRES_SERVER
+      - POSTGRES_USER
+      - PROJECT_NAME
+      - SENTRY_DSN
+      - SERVER_HOST
+      - SERVER_NAME
+    networks:
+      - pb_stats_api
+      - hackerwars_bot
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        order: start-first
+        failure_action: rollback
+        delay: 5s
+
+  pb_stats_api_db:
+    image: postgres:15
+    volumes:
+      - "/srv/pb_stats_api/postgres/data:/var/lib/postgresql/data"
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_PASSWORD
+      - POSTGRES_SERVER
+      - POSTGRES_USER
+    networks:
+      - pb_stats_api
+
+networks:
+  pb_stats_api:
+    external: true
+  hackerwars_bot:
+    external: true
+
+

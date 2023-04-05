@@ -1,0 +1,64 @@
+name: Build and push image
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push request events but only for the master branch
+  push:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      - name: Set up Dockerfile Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Dockerfile Login
+        run: |
+          docker login -u=${{ secrets.REGISTRY_USERNAME }} -p=${{ secrets.REGISTRY_PASSWORD }} https://${{ secrets.REGISTRY_ADDRESS }}
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          context: .
+          tags: ${{ secrets.REGISTRY_ADDRESS }}/pb_stats_api/pb_stats_api:latest
+          build-args: |
+            REGISTRY_ADDRESS=${{ secrets.REGISTRY_ADDRESS }}
+          cache-from: type=gha,scope=pb_stats_api
+          cache-to: type=gha,mode=max,scope=pb_stats_api
+          provenance: false
+
+      - name: Inspect
+        run: |
+          docker buildx imagetools inspect ${{ secrets.REGISTRY_ADDRESS }}/pb_stats_api/pb_stats_api:latest
+
+      - name: Create Sentry release
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: Production
+
+      - name: Trigger webhook
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: ${{ secrets.WEBHOOK_URL }}
+          method: 'POST'
+          timeout: 10000
+          preventFailureOnNoResponse: true
