@@ -12,13 +12,13 @@ class StatsBase(BaseModel):
 
 # Properties to receive via API on creation
 class StatsCreate(StatsBase):
-    user_name: str
+    user_name: Optional[str] = None
     stats: Optional[int] = None
 
 
 # Properties to receive via API on update
 class StatsUpdate(StatsBase):
-    user_name: str
+    user_name: Optional[str] = None
     stats: Optional[int] = None
 
 

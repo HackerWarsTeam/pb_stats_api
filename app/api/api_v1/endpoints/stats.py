@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import schemas, crud, models
 from app.api import deps
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -54,7 +55,7 @@ async def add_stats(
     """
     Add new stats.
     """
-    if not stats_in.img_url and not stats_in.stats:
+    if (not stats_in.img_url and not stats_in.stats) or not stats_in.user_name:
         raise HTTPException(status_code=422, detail=f"Validation error")
     stats = await crud.stats.get_by_vk_id(db, user_vk_id=stats_in.user_vk_id)
     if not stats_in.img_url:
@@ -77,6 +78,34 @@ async def add_stats(
             raise HTTPException(status_code=500, detail=f"Unable to process a screenshot. Error: {e}. String: {string}")
     if not stats_in.stats:
         raise HTTPException(status_code=500, detail="User not found in the screenshot")
+    if not stats:
+        stats = await crud.stats.create(db, obj_in=stats_in)
+    elif stats.stats < stats_in.stats:
+        stats = await crud.stats.update(db, db_obj=stats, obj_in=stats_in)
+    return stats
+
+
+@router.post("/stats_from_api", response_model=schemas.Stats)
+async def add_stats_from_api(
+        *,
+        db: AsyncSession = Depends(deps.async_get_db),
+        stats_in: schemas.StatsCreate,
+) -> Any:
+    """
+    Add new stats from api.
+    """
+    stats = await crud.stats.get_by_vk_id(db, user_vk_id=stats_in.user_vk_id)
+    headers = {'x-vk-sign': settings.PIXELBATTLE_TOKEN,
+               'content-type': 'application/json'}
+    user_stats_from_api = requests.post('https://pixel-dev.w84.vkforms.ru/api/my',
+                                        json={'friendIds': [stats_in.user_vk_id]},
+                                        headers=headers)
+    friends = user_stats_from_api.json()["response"]["friends"]
+    for friend in friends:
+        if friend.get("id") == stats_in.user_vk_id:
+            stats_in.stats = friend.get("score", 0)
+    if not stats_in.stats:
+        raise HTTPException(status_code=404, detail="User not found")
     if not stats:
         stats = await crud.stats.create(db, obj_in=stats_in)
     elif stats.stats < stats_in.stats:
