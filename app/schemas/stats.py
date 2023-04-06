@@ -7,7 +7,7 @@ from typing import Optional
 # Shared properties
 class StatsBase(BaseModel):
     user_vk_id: int
-    img_url: str
+    img_url: Optional[str]
 
 
 # Properties to receive via API on creation
@@ -19,6 +19,7 @@ class StatsCreate(StatsBase):
 # Properties to receive via API on update
 class StatsUpdate(StatsBase):
     user_name: str
+    stats: Optional[int] = None
 
 
 class StatsInDBBase(StatsBase):
