@@ -1,3 +1,4 @@
+import re
 from io import BytesIO
 from typing import Any, List
 
@@ -69,13 +70,15 @@ async def add_stats(
         string = pytesseract.image_to_string(img)
     if stats_in.user_name in string:
         try:
-            stats_in.stats = int(string.split(stats_in.user_name, 1)[1].split("\n", 2)[1])
+            stats_in.stats = string.split(stats_in.user_name, 1)[1]
+            match = re.search('(\d+)', stats_in.stats)
+            stats_in.stats = int(match.group(1))
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Unable to process a screenshot. Error: {e}. String: {string}")
     if not stats_in.stats:
-        raise HTTPException(status_code=500, detail="Unable to process a screenshot")
+        raise HTTPException(status_code=500, detail="User not found in the screenshot")
     if not stats:
         stats = await crud.stats.create(db, obj_in=stats_in)
     elif stats.stats < stats_in.stats:
-        stats = await crud.stats.update(db, obj_in=stats_in)
+        stats = await crud.stats.update(db, db_obj=stats, obj_in=stats_in)
     return stats
