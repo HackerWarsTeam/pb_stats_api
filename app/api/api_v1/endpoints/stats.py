@@ -8,7 +8,7 @@ from PIL import Image
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import schemas, crud, models
+from app import schemas, crud
 from app.api import deps
 from app.core.config import settings
 
@@ -66,7 +66,7 @@ async def add_stats(
         return stats
     response = requests.get(stats_in.img_url)
     img = Image.open(BytesIO(response.content))
-    string = pytesseract.image_to_string(img, lang='RUS')
+    string = pytesseract.image_to_string(img, lang='rus')
     if stats_in.user_name not in string:
         string = pytesseract.image_to_string(img)
     if stats_in.user_name in string:
