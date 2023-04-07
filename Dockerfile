@@ -3,7 +3,7 @@ ENV TZ="Europe/Moscow"
 
 LABEL maintainer="Gleb Sergeev <dieplex@mail.ru>"
 
-RUN apt-get update && apt-get -y install tesseract-ocr
+RUN apt-get update && apt-get -y install tesseract-ocr tesseract-ocr-eng tesseract-ocr-rus
 
 COPY ./requirements.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
